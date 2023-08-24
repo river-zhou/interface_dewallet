@@ -3,7 +3,6 @@ import { Flex, useColorModeValue, Spacer, Heading, Button } from '@chakra-ui/rea
 import { SITE_NAME } from 'utils/config'
 import { LinkComponent } from './LinkComponent'
 import { ThemeSwitcher } from './ThemeSwitcher'
-import { PassportScore } from './PassportScore'
 import { Web3Button } from '@web3modal/react'
 
 interface Props {
@@ -24,7 +23,6 @@ export function Header(props: Props) {
       <Spacer />
 
       <Flex alignItems="center" gap={4}>
-        <PassportScore />
         <Web3Button icon="hide" label="Connect" />
         <ThemeSwitcher />
       </Flex>
