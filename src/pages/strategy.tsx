@@ -17,23 +17,26 @@ import {
   ModalCloseButton,
 } from '@chakra-ui/react'
 import { VAULT_MANAGEMENT_ABI } from 'abis/'
+import BigNumber from 'bignumber.js'
 import { useCurrentBalance } from 'hooks/useCurrentBalance'
+import { useGetShare } from 'hooks/useGetShare'
 import { useUserBalance } from 'hooks/useUserBalance'
 import { useState } from 'react'
 import { useDebounce } from 'usehooks-ts'
-import { ETH, VAULT_MANAGEMENT } from 'utils/config'
-import { parseEther } from 'viem'
+import { ETH, VAULT_MANAGEMENT, compoundWETH, compoundUSDC, USDC, WETH9 } from 'utils/config'
+import { parseEther, formatEther } from 'viem'
 import { useAccount, useContractWrite } from 'wagmi'
 
 interface SubmitProps {
   user: string
   debouncedValue: string
   token: string
+  strategy: string
 }
 
 function Submit(props: SubmitProps) {
-  const { user, debouncedValue, token } = props
-  const [strategy, setStrategy] = useState('')
+  const { user, debouncedValue, token, strategy } = props
+
   const { data, isLoading, isSuccess, write } = useContractWrite({
     address: VAULT_MANAGEMENT,
     abi: VAULT_MANAGEMENT_ABI,
@@ -41,13 +44,13 @@ function Submit(props: SubmitProps) {
     args: [strategy as `0x{string}`, user as `0x{string}`, debouncedValue ? parseEther(debouncedValue as `${number}`) : parseEther('0')],
   })
   const balance = useUserBalance(user, token)
-
-  const isDisabled = balance >= parseEther(debouncedValue as `${number}`)
+  const isDisabled = (balance as number) < parseEther(debouncedValue as `${number}`)
   return (
     <>
       <Button
         disabled={isDisabled}
         colorScheme="blue"
+        width="100px"
         onClick={() => {
           write()
         }}>
@@ -57,10 +60,14 @@ function Submit(props: SubmitProps) {
   )
 }
 
-function Withdraw() {
-  const [strategy, setStrategy] = useState('')
-  const { address } = useAccount()
-  const [user, setUser] = useState(address)
+interface WithdrawProps {
+  user: string
+  strategy: string
+  withdrawAmount: string
+}
+
+function Withdraw(props: WithdrawProps) {
+  const { user, strategy, withdrawAmount } = props
   const [inputAmount, setInputAmount] = useState()
   const debouncedAmount = useDebounce(inputAmount, 500)
   const [flag, setFlag] = useState(0)
@@ -68,12 +75,13 @@ function Withdraw() {
     address: VAULT_MANAGEMENT,
     abi: VAULT_MANAGEMENT_ABI,
     functionName: 'withdrawFor',
-    args: [strategy as `0x{string}`, user as `0x{string}`, debouncedAmount ? parseEther(debouncedAmount as `${number}`) : parseEther('0'), flag],
+    args: [user as `0x{string}`, strategy as `0x{string}`, debouncedAmount ? parseEther(debouncedAmount as `${number}`) : parseEther('0'), flag],
   })
   return (
     <Button
       disabled={false}
       colorScheme="blue"
+      width="100px"
       onClick={() => {
         write()
       }}>
@@ -83,54 +91,68 @@ function Withdraw() {
 }
 
 export default function StrategyComponent() {
-  const [selectedToken, setSelectedToken] = useState(ETH)
-  const debouncedToken = useDebounce(selectedToken, 500)
+  const [selectedSetStrategy, setSelectedSetStrategy] = useState(compoundWETH)
+  const debouncedSetStrategy = useDebounce(selectedSetStrategy, 500)
   const [inputValue, setInputValue] = useState('')
+  const [token, setToken] = useState(WETH9)
   const [inputUser, setInputUser] = useState('')
   const debouncedValue = useDebounce(inputValue, 500)
-  const tokenOptions = [
-    { label: 'lido', value: ETH },
-    { label: 'compoundUSDC', value: '0x07865c6E87B9F70255377e024ace6630C1Eaa37F' },
-    { label: 'compoundWETH', value: '0x42a71137C09AE83D8d05974960fd607d40033499' },
+  const strategyOptions = [
+    { label: 'compoundUSDC', value: compoundUSDC },
+    { label: 'compoundWETH', value: compoundWETH },
   ]
+  const tokenOptions = {
+    compoundUSDC: USDC,
+    compoundWETH: WETH9,
+  } as { [key: string]: string }
   const { isConnected } = useAccount()
   const { address } = useAccount()
-  const balance = useCurrentBalance(address as `0x${string}`, debouncedToken === ETH ? '' : debouncedToken)
-
+  let result = useUserBalance(inputUser, token)
+  let tokenInfo = useCurrentBalance(inputUser, token)
+  let share = useGetShare(inputUser, selectedSetStrategy)
+  let shareFormatted = new BigNumber(share).div(new BigNumber(10).pow(18)).toFixed(4)
   let balanceInfo = null
-  let symbol = null
-  if (selectedToken === ETH) {
-    const ethFormatted = balance.data?.formatted
-    symbol = 'ETH'
-    balanceInfo = (
-      <>
-        余额: {ethFormatted !== undefined ? parseFloat(ethFormatted).toFixed(3) : 'N/A'} {symbol}
-      </>
-    )
-  } else {
-    const ercFormatted = balance.data?.formatted
-    const ercSymbol = balance.data?.symbol
-    symbol = ercSymbol
-    balanceInfo = <>余额: {ercFormatted !== undefined ? `${parseFloat(ercFormatted).toFixed(3)} ${ercSymbol}` : 'N/A'}</>
+  let symbol = tokenInfo.data?.symbol
+  let decimals = tokenInfo.data?.decimals
+  let formattedBalance
+  if (decimals !== undefined) {
+    formattedBalance = new BigNumber(result).div(BigNumber(10).pow(decimals)).toString()
   }
+  balanceInfo = (
+    <>
+      余额: {formattedBalance} {symbol}
+    </>
+  )
+  let shareInfo = null
+  shareInfo = <>份额: {shareFormatted}</>
 
   if (isConnected) {
     return (
       <Box p={4} borderWidth="1px" borderRadius="lg" borderColor="gray.200">
-        <Select mb={2} value={selectedToken} onChange={(e) => setSelectedToken(e.target.value)}>
-          {tokenOptions.map((option) => (
+        <Select
+          mb={2}
+          value={selectedSetStrategy}
+          onChange={(e) => {
+            setSelectedSetStrategy(e.target.value)
+            setToken(tokenOptions[e.target.value])
+          }}>
+          {strategyOptions.map((option) => (
             <option key={option.value} value={option.value}>
               {option.label}
             </option>
           ))}
         </Select>
-        <Input mb={2} type="text" value={inputValue} onChange={(e) => setInputValue(e.target.value)} placeholder={symbol} />
+        <Input mb={2} type="text" value={inputValue} onChange={(e) => setInputValue(e.target.value)} placeholder="Amount" />
         <Input mb={2} type="text" value={inputUser} onChange={(e) => setInputUser(e.target.value)} placeholder="User" />
 
         <Flex justifyContent="space-between" alignItems="center">
           <Text color="gray">{balanceInfo}</Text>
-          <Submit user={address as string} debouncedValue={debouncedValue} token={selectedToken} />
-          <Withdraw />
+          <Submit user={address as string} debouncedValue={debouncedValue} token={token} strategy={debouncedSetStrategy} />
+        </Flex>
+        <Divider my={2} />
+        <Flex justifyContent="space-between" alignItems="center">
+          <Text color="gray">{shareInfo}</Text>
+          <Withdraw user={inputUser} strategy={selectedSetStrategy} withdrawAmount={debouncedValue} />
         </Flex>
       </Box>
     )

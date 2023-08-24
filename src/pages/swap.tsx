@@ -2,14 +2,13 @@ import { Box, Select, Input, Button, Text, Flex, IconButton, InputGroup, InputRi
 import { FaArrowDown } from 'react-icons/fa'
 import React, { useState } from 'react'
 import { useDebounce } from 'usehooks-ts'
-import { ETH, VAULT_MANAGEMENT } from 'utils/config'
+import { ETH, USDC, VAULT_MANAGEMENT, WETH9, UniSwap } from 'utils/config'
 import { useAccount, useContractWrite } from 'wagmi'
 import { VAULT_MANAGEMENT_ABI } from 'abis/'
 import { parseEther } from 'viem'
 
 interface SwapProps {
   exchange: string
-  pool: string
   user: string
   inCoin: string
   outCoin: string
@@ -18,7 +17,8 @@ interface SwapProps {
 }
 
 function SwapButton(props: SwapProps) {
-  const { exchange, pool, user, inCoin, outCoin, inAmount, outAmount } = props
+  const { exchange, user, inCoin, outCoin, inAmount, outAmount } = props
+  const pool = '0x334c18D09deebe577e1B5811F6EA94247Fb75015'
   const { data, isLoading, isSuccess, write } = useContractWrite({
     address: VAULT_MANAGEMENT,
     abi: VAULT_MANAGEMENT_ABI,
@@ -48,21 +48,24 @@ function SwapButton(props: SwapProps) {
   )
 }
 export default function SwapComponent() {
-  const [selectedTokenA, setSelectedTokenA] = useState('0x42a71137C09AE83D8d05974960fd607d40033499')
-  const [selectedTokenB, setSelectedTokenB] = useState(ETH)
-  const [inputValue, setInputValue] = useState('')
-  const debouncedValue = useDebounce(inputValue, 500)
+  const [selectedTokenA, setSelectedTokenA] = useState(WETH9)
+  const [selectedTokenB, setSelectedTokenB] = useState(USDC)
+  const [inputValueA, setInputValueA] = useState('')
+  const [inputValueB, setInputValueB] = useState('')
+  const debouncedValueA = useDebounce(inputValueA, 500)
+  const debouncedValueB = useDebounce(inputValueB, 500)
+  const [inputUser, setInputUser] = useState('')
 
   const tokenOptions = [
-    { label: 'WETH9', value: '0x42a71137C09AE83D8d05974960fd607d40033499' },
-    { label: 'ETH', value: ETH },
+    { label: 'WETH9', value: WETH9 },
+    { label: 'USDC', value: USDC },
   ]
   const exchangeOptions = [
-    { label: 'uniswap', value: 'uniswap' },
+    { label: 'uniswap', value: UniSwap },
     { label: 'curve', value: 'curve' },
   ]
 
-  const [selectExchange, setSelectExchange] = useState('')
+  const [selectExchange, setSelectExchange] = useState(UniSwap)
 
   const { isConnected } = useAccount()
   const { address } = useAccount()
@@ -78,11 +81,12 @@ export default function SwapComponent() {
           <InputGroup borderWidth="1px" borderRadius="lg" borderColor="gray.200" h="40px">
             <Input
               size="sm"
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
+              value={inputValueA}
+              onChange={(e) => setInputValueA(e.target.value)}
               pr="4.5rem"
               border="none"
               _focus={{ boxShadow: 'none' }}
+              placeholder="Amount"
             />
             <Select
               size="sm"
@@ -115,11 +119,12 @@ export default function SwapComponent() {
           <InputGroup borderWidth="1px" borderRadius="lg" borderColor="gray.200" h="40px">
             <Input
               size="sm"
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
+              value={inputValueB}
+              onChange={(e) => setInputValueB(e.target.value)}
               pr="4.5rem"
               border="none"
               _focus={{ boxShadow: 'none' }}
+              placeholder="Amount"
             />
             <Select
               size="sm"
@@ -136,7 +141,15 @@ export default function SwapComponent() {
             </Select>
           </InputGroup>
         </Flex>
-        <SwapButton exchange={selectExchange} pool="" user="" inCoin="" outCoin="" inAmount="" outAmount="" />
+        <Input mb={2} type="text" value={inputUser} onChange={(e) => setInputUser(e.target.value)} placeholder="User" />
+        <SwapButton
+          exchange={selectExchange}
+          user={inputUser}
+          inCoin={selectedTokenA}
+          outCoin={selectedTokenB}
+          inAmount={debouncedValueA}
+          outAmount={debouncedValueB}
+        />
       </Box>
     )
   }

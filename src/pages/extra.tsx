@@ -6,12 +6,11 @@ import { useAccount, useContractWrite } from 'wagmi'
 
 interface ConfirmProps {
   type: string
+  manager: string
 }
 
 export default function Confirm(props: ConfirmProps) {
-  const { type } = props
-  const { address } = useAccount()
-  const [manager, setManager] = useState('')
+  const { type, manager } = props
 
   let functionName
   let args

@@ -23,12 +23,11 @@ export function useGetAllowance(token: string, user: string, agent: string) {
 }
 
 export function useApprove(token: string, agent: string, value: bigint) {
-  const { address } = useAccount()
   const { data, isLoading, isSuccess, write } = useContractWrite({
     address: token as `0x${string}`,
     abi: erc20ABI,
     functionName: 'approve',
-    args: [address as `0x${string}`, value],
+    args: [agent as `0x${string}`, value],
   })
   return {
     write: write, // 返回是否出错

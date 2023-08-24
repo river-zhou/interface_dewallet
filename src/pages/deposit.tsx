@@ -1,12 +1,13 @@
 import React, { useState } from 'react'
 import { Box, Select, Input, Button, Text, Flex } from '@chakra-ui/react' // 导入 Chakra UI 组件
 import { useAccount, useBalance, useContractWrite } from 'wagmi'
-import { ETH, VAULT_MANAGEMENT } from 'utils/config'
+import { ETH, WETH9, VAULT_MANAGEMENT } from 'utils/config'
 import { VAULT_MANAGEMENT_ABI } from 'abis/index'
 import { useApprove, useGetAllowance } from 'hooks/useERC20'
 import { useCurrentBalance } from 'hooks/useCurrentBalance'
 import { useDebounce } from 'usehooks-ts'
 import { parseEther } from 'viem'
+import { BigNumber } from 'bignumber.js'
 
 function DepositETH({ debouncedToken, debouncedValue }: { debouncedToken: string; debouncedValue: string }) {
   const { data, isLoading, isSuccess, write } = useContractWrite({
@@ -45,16 +46,13 @@ function DepositERC20({ debouncedToken, user, debouncedValue }: { debouncedToken
     args: [debouncedToken, debouncedValue ? parseEther(debouncedValue as `${number}`) : parseEther('0')],
   })
   const handleSendTransaction = () => {
-    if (approveResults.data === undefined) {
-      console.log('approveResults data is undefined')
-      return
-    }
-    if (approveResults.data >= parseEther(debouncedValue as `${number}`)) {
+    if (approveResults.data != undefined && approveResults.data >= parseEther(debouncedValue as `${number}`)) {
       write()
     } else {
       approve.write()
     }
   }
+  const SDButton = approveResults.data === BigInt(0) || approveResults.data === undefined ? 'Approve' : 'Deposit'
   const { address } = useAccount()
   const balance = useBalance({
     address: address as `0x{string}`,
@@ -66,9 +64,9 @@ function DepositERC20({ debouncedToken, user, debouncedValue }: { debouncedToken
       disabled={!write || isBalanceZero === parseEther('0')}
       colorScheme="blue"
       onClick={() => {
-        write()
+        handleSendTransaction()
       }}>
-      Deposit
+      {SDButton}
     </Button>
   )
 }
@@ -79,21 +77,25 @@ export default function DepositComponent() {
   const [inputValue, setInputValue] = useState('')
   const debouncedValue = useDebounce(inputValue, 500)
   const tokenOptions = [
-    { label: 'WETH9', value: '0x42a71137C09AE83D8d05974960fd607d40033499' },
+    { label: 'WETH9', value: WETH9 },
     { label: 'ETH', value: ETH },
   ]
   const { isConnected } = useAccount()
   const { address } = useAccount()
   const balance = useCurrentBalance(address as `0x${string}`, debouncedToken === ETH ? '' : debouncedToken)
-
   let balanceInfo = null
+  let symbol = null
   if (selectedToken === ETH) {
     const ethFormatted = balance.data?.formatted
-    balanceInfo = <>余额: {ethFormatted !== undefined ? parseFloat(ethFormatted).toFixed(3) : 'N/A'} ETH</>
+    const ethValue = ethFormatted !== undefined ? new BigNumber(ethFormatted) : new BigNumber(0)
+    balanceInfo = <>余额: {ethValue.toFixed(4)} ETH</>
+    symbol = 'ETH'
   } else {
     const ercFormatted = balance.data?.formatted
     const ercSymbol = balance.data?.symbol
-    balanceInfo = <>余额: {ercFormatted !== undefined ? `${parseFloat(ercFormatted).toFixed(3)} ${ercSymbol}` : 'N/A'}</>
+    const ercValue = ercFormatted !== undefined ? new BigNumber(ercFormatted) : new BigNumber(0)
+    balanceInfo = <>余额: {`${ercValue.toFixed(4)} ${ercSymbol}`}</>
+    symbol = ercSymbol
   }
 
   if (isConnected) {
@@ -113,7 +115,8 @@ export default function DepositComponent() {
             </option>
           ))}
         </Select>
-        <Input mb={2} type="text" value={inputValue} onChange={(e) => setInputValue(e.target.value)} /> {/* 使用 Chakra UI 的样式 */}
+        <Input mb={2} type="text" value={inputValue} onChange={(e) => setInputValue(e.target.value)} placeholder="Amount" />{' '}
+        {/* 使用 Chakra UI 的样式 */}
         <Flex justifyContent="space-between" alignItems="center">
           <Text color="gray">{balanceInfo}</Text>
           {depositButton}

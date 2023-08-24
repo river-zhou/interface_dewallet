@@ -3,8 +3,10 @@
   "editor.defaultFormatter": "esbenp.prettier-vscode",
   "cSpell.words": [
     "arbitrum",
+    "bignumber",
     "Chakra",
     "shct",
+    "usehooks",
     "viem",
     "wagmi",
     "WALLETCONNECT"

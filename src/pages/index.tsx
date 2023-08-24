@@ -25,7 +25,7 @@ export default function Home() {
   const [activeLink, setActiveLink] = useState('deposit')
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [userOption, setUserOption] = useState('setManager')
-  const [inputAmount, setInputAmount] = useState('')
+  const [inputAddress, setInputAddress] = useState('')
   const userOptions = [
     { label: 'setManager', value: 'setManager' },
     { label: 'swapAllow', value: 'swapAllow' },
@@ -131,11 +131,11 @@ export default function Home() {
               ))}
             </Select>
             {userOption === 'setManager' ? (
-              <Input mb={2} type="text" width="100%" value={inputAmount} onChange={(e) => setInputAmount(e.target.value)} placeholder="address" />
+              <Input mb={2} type="text" width="100%" value={inputAddress} onChange={(e) => setInputAddress(e.target.value)} placeholder="address" />
             ) : null}
           </ModalBody>
           <ModalFooter>
-            <Confirm type={userOption} />
+            <Confirm type={userOption} manager={inputAddress} />
           </ModalFooter>
         </ModalContent>
       </Modal>
