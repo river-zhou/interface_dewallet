@@ -1,17 +1,17 @@
-import React from 'react';
-import { Flex, useColorModeValue, Spacer, Heading, Button } from '@chakra-ui/react';
-import { SITE_NAME } from 'utils/config';
-import { LinkComponent } from './LinkComponent';
-import { ThemeSwitcher } from './ThemeSwitcher';
-import { PassportScore } from './PassportScore';
-import { Web3Button } from '@web3modal/react';
+import React from 'react'
+import { Flex, useColorModeValue, Spacer, Heading, Button } from '@chakra-ui/react'
+import { SITE_NAME } from 'utils/config'
+import { LinkComponent } from './LinkComponent'
+import { ThemeSwitcher } from './ThemeSwitcher'
+import { PassportScore } from './PassportScore'
+import { Web3Button } from '@web3modal/react'
 
 interface Props {
-  className?: string;
+  className?: string
 }
 
 export function Header(props: Props) {
-  const className = props.className ?? '';
+  const className = props.className ?? ''
 
   return (
     <Flex as="header" className={className} bg={useColorModeValue('gray.100', 'gray.900')} px={4} py={2} mb={8} alignItems="center">
@@ -29,5 +29,5 @@ export function Header(props: Props) {
         <ThemeSwitcher />
       </Flex>
     </Flex>
-  );
+  )
 }
