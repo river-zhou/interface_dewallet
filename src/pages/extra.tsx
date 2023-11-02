@@ -18,16 +18,11 @@ export default function Confirm(props: ConfirmProps) {
   if (type == 'setManager') {
     functionName = 'hireFundManager'
     args = [manager as `0x{string}`]
-  }
-  if (type == 'lowStrategy') {
+  } else if (type == 'lowStrategy') {
     functionName = 'setLowStrategyAllowedStatus'
-  }
-
-  if (type == 'midStrategy') {
+  } else if (type == 'midStrategy') {
     functionName = 'setMidStrategyAllowedStatus'
-  }
-
-  if (type == 'swapAllow') {
+  } else if (type == 'swapAllow') {
     functionName = 'setSwapAllowedStatus'
   }
 

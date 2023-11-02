@@ -21,10 +21,10 @@ import BigNumber from 'bignumber.js'
 import { useCurrentBalance } from 'hooks/useCurrentBalance'
 import { useGetShare } from 'hooks/useGetShare'
 import { useUserBalance } from 'hooks/useUserBalance'
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useDebounce } from 'usehooks-ts'
-import { ETH, VAULT_MANAGEMENT, compoundWETH, compoundUSDC, USDC, WETH9 } from 'utils/config'
-import { parseEther, formatEther } from 'viem'
+import { VAULT_MANAGEMENT, USDC, WETH9, COMPOUND_USDC, COMPOUND_WETH, LIDO } from 'utils/config'
+import { parseEther } from 'viem'
 import { useAccount, useContractWrite } from 'wagmi'
 
 interface SubmitProps {
@@ -36,7 +36,6 @@ interface SubmitProps {
 
 function Submit(props: SubmitProps) {
   const { user, debouncedValue, token, strategy } = props
-
   const { data, isLoading, isSuccess, write } = useContractWrite({
     address: VAULT_MANAGEMENT,
     abi: VAULT_MANAGEMENT_ABI,
@@ -69,7 +68,7 @@ interface WithdrawProps {
 function Withdraw(props: WithdrawProps) {
   const { user, strategy, withdrawAmount } = props
   const [inputAmount, setInputAmount] = useState()
-  const debouncedAmount = useDebounce(inputAmount, 500)
+  const debouncedAmount = useDebounce(inputAmount, 50)
   const [flag, setFlag] = useState(0)
   const { data, isLoading, isSuccess, write } = useContractWrite({
     address: VAULT_MANAGEMENT,
@@ -90,26 +89,36 @@ function Withdraw(props: WithdrawProps) {
   )
 }
 
-export default function StrategyComponent() {
-  const [selectedSetStrategy, setSelectedSetStrategy] = useState(compoundWETH)
+export default function StrategyComponent(props: { flag: any }) {
+  const flag = props.flag
+  const [selectedSetStrategy, setSelectedSetStrategy] = useState(COMPOUND_WETH)
   const debouncedSetStrategy = useDebounce(selectedSetStrategy, 500)
   const [inputValue, setInputValue] = useState('')
   const [token, setToken] = useState(WETH9)
   const [inputUser, setInputUser] = useState('')
   const debouncedValue = useDebounce(inputValue, 500)
   const strategyOptions = [
-    { label: 'compoundUSDC', value: compoundUSDC },
-    { label: 'compoundWETH', value: compoundWETH },
+    { label: 'compoundUSDC', value: COMPOUND_USDC },
+    { label: 'compoundWETH', value: COMPOUND_WETH },
+    { label: 'lido', value: LIDO },
   ]
-  const tokenOptions = {
-    compoundUSDC: USDC,
-    compoundWETH: WETH9,
-  } as { [key: string]: string }
+  const tokenOptions = useMemo(
+    () =>
+      ({
+        COMPOUND_USDC: USDC,
+        COMPOUND_WETH: WETH9,
+        LIDO: WETH9,
+      } as { [key: string]: string }),
+    []
+  )
   const { isConnected } = useAccount()
   const { address } = useAccount()
   let result = useUserBalance(inputUser, token)
   let tokenInfo = useCurrentBalance(inputUser, token)
   let share = useGetShare(inputUser, selectedSetStrategy)
+  useEffect(() => {
+    setToken(tokenOptions[selectedSetStrategy])
+  }, [selectedSetStrategy, tokenOptions])
   let shareFormatted = new BigNumber(share).div(new BigNumber(10).pow(18)).toFixed(4)
   let balanceInfo = null
   let symbol = tokenInfo.data?.symbol
@@ -134,7 +143,6 @@ export default function StrategyComponent() {
           value={selectedSetStrategy}
           onChange={(e) => {
             setSelectedSetStrategy(e.target.value)
-            setToken(tokenOptions[e.target.value])
           }}>
           {strategyOptions.map((option) => (
             <option key={option.value} value={option.value}>
@@ -143,7 +151,7 @@ export default function StrategyComponent() {
           ))}
         </Select>
         <Input mb={2} type="text" value={inputValue} onChange={(e) => setInputValue(e.target.value)} placeholder="Amount" />
-        <Input mb={2} type="text" value={inputUser} onChange={(e) => setInputUser(e.target.value)} placeholder="User" />
+        {flag && <Input mb={2} type="text" value={inputUser} onChange={(e) => setInputUser(e.target.value)} placeholder="User" />}
 
         <Flex justifyContent="space-between" alignItems="center">
           <Text color="gray">{balanceInfo}</Text>
@@ -152,7 +160,7 @@ export default function StrategyComponent() {
         <Divider my={2} />
         <Flex justifyContent="space-between" alignItems="center">
           <Text color="gray">{shareInfo}</Text>
-          <Withdraw user={inputUser} strategy={selectedSetStrategy} withdrawAmount={debouncedValue} />
+          <Withdraw user={flag ? inputUser : (address as string)} strategy={selectedSetStrategy} withdrawAmount={debouncedValue} />
         </Flex>
       </Box>
     )

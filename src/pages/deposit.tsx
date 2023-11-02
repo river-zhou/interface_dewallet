@@ -8,6 +8,7 @@ import { useCurrentBalance } from 'hooks/useCurrentBalance'
 import { useDebounce } from 'usehooks-ts'
 import { parseEther } from 'viem'
 import { BigNumber } from 'bignumber.js'
+import { useAllTokens } from '../hooks/useAllTokens'
 
 function DepositETH({ debouncedToken, debouncedValue }: { debouncedToken: string; debouncedValue: string }) {
   const { data, isLoading, isSuccess, write } = useContractWrite({
@@ -76,10 +77,11 @@ export default function DepositComponent() {
   const debouncedToken = useDebounce(selectedToken, 500)
   const [inputValue, setInputValue] = useState('')
   const debouncedValue = useDebounce(inputValue, 500)
-  const tokenOptions = [
-    { label: 'WETH9', value: WETH9 },
-    { label: 'ETH', value: ETH },
-  ]
+  const { loading, error, tokens } = useAllTokens()
+  const tokenOptions = tokens?.map((token) => ({
+    value: token.id,
+    label: token.symbol,
+  }))
   const { isConnected } = useAccount()
   const { address } = useAccount()
   const balance = useCurrentBalance(address as `0x${string}`, debouncedToken === ETH ? '' : debouncedToken)
@@ -97,6 +99,13 @@ export default function DepositComponent() {
     balanceInfo = <>余额: {`${ercValue.toFixed(4)} ${ercSymbol}`}</>
     symbol = ercSymbol
   }
+  if (loading) {
+    return <p>Loading...</p>
+  }
+
+  if (error) {
+    return <p>Error: {error.message}</p>
+  }
 
   if (isConnected) {
     const depositButton =
@@ -109,7 +118,7 @@ export default function DepositComponent() {
     return (
       <Box p={4} borderWidth="1px" borderRadius="lg" borderColor="gray.200">
         <Select mb={2} value={selectedToken} onChange={(e) => setSelectedToken(e.target.value)}>
-          {tokenOptions.map((option) => (
+          {tokenOptions?.map((option) => (
             <option key={option.value} value={option.value}>
               {option.label}
             </option>

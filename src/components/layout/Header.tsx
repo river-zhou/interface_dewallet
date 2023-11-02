@@ -14,15 +14,20 @@ export function Header(props: Props) {
 
   return (
     <Flex as="header" className={className} bg={useColorModeValue('gray.100', 'gray.900')} px={4} py={2} mb={8} alignItems="center">
-      <LinkComponent href="/">
-        <Heading as="h1" size="md">
-          {SITE_NAME}
-        </Heading>
-      </LinkComponent>
-
+      <Flex alignItems="center">
+        <LinkComponent href="/">
+          <Heading as="h1" size="md">
+            {SITE_NAME}
+          </Heading>
+        </LinkComponent>
+      </Flex>
       <Spacer />
-
       <Flex alignItems="center" gap={4}>
+        <LinkComponent href="/board">
+          <Heading as="h1" size="md">
+            Board
+          </Heading>
+        </LinkComponent>
         <Web3Button icon="hide" label="Connect" />
         <ThemeSwitcher />
       </Flex>

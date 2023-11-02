@@ -1,11 +1,15 @@
 import { Box, Select, Input, Button, Text, Flex, IconButton, InputGroup, InputRightElement } from '@chakra-ui/react'
 import { FaArrowDown } from 'react-icons/fa'
-import React, { useState } from 'react'
+import React, { useContext, useEffect, useState } from 'react'
 import { useDebounce } from 'usehooks-ts'
 import { ETH, USDC, VAULT_MANAGEMENT, WETH9, UniSwap } from 'utils/config'
 import { useAccount, useContractWrite } from 'wagmi'
 import { VAULT_MANAGEMENT_ABI } from 'abis/'
 import { parseEther } from 'viem'
+
+import { useAllTokens } from '../hooks/useAllTokens'
+import UniPoolPrice from './uniPoolPrice'
+import { PriceContext } from './PriceContext'
 
 interface SwapProps {
   exchange: string
@@ -47,33 +51,63 @@ function SwapButton(props: SwapProps) {
     </Button>
   )
 }
-export default function SwapComponent() {
-  const [selectedTokenA, setSelectedTokenA] = useState(WETH9)
-  const [selectedTokenB, setSelectedTokenB] = useState(USDC)
+
+export default function SwapComponent(props: { flag: any }) {
+  const flag = props.flag
   const [inputValueA, setInputValueA] = useState('')
   const [inputValueB, setInputValueB] = useState('')
   const debouncedValueA = useDebounce(inputValueA, 500)
   const debouncedValueB = useDebounce(inputValueB, 500)
   const [inputUser, setInputUser] = useState('')
+  const { loading, error, tokens } = useAllTokens()
+  const priceContext = useContext(PriceContext)
+  console.log('priceContext', priceContext?.priceState)
 
-  const tokenOptions = [
-    { label: 'WETH9', value: WETH9 },
-    { label: 'USDC', value: USDC },
-  ]
+  const tokenOptions =
+    tokens?.map((token) => ({
+      value: token.id,
+      label: token.symbol,
+    })) || []
+
+  const [selectedTokenA, setSelectedTokenA] = useState(tokenOptions[0]?.value || '')
+  const [selectedTokenB, setSelectedTokenB] = useState(tokenOptions[1]?.value || '')
+  const pool = '0x334c18D09deebe577e1B5811F6EA94247Fb75015'
+
   const exchangeOptions = [
     { label: 'uniswap', value: UniSwap },
     { label: 'curve', value: 'curve' },
   ]
 
   const [selectExchange, setSelectExchange] = useState(UniSwap)
+  const [isSwapped, setIsSwapped] = useState(false)
 
   const { isConnected } = useAccount()
   const { address } = useAccount()
 
+  useEffect(() => {
+    // 当 inputValueA 发生变化时，更新 inputValueB
+    const calculatedValueB = parseFloat(inputValueA) * Number(priceContext?.priceState)
+    setInputValueB(isNaN(calculatedValueB) ? '' : calculatedValueB.toString())
+  }, [inputValueA, priceContext])
+
+  useEffect(() => {
+    // 当 inputValueB 发生变化时，更新 inputValueA
+    const calculatedValueA = parseFloat(inputValueB) / Number(priceContext?.priceState)
+    setInputValueA(isNaN(calculatedValueA) ? '' : calculatedValueA.toString())
+  }, [inputValueB, priceContext])
+
   const handleSwapTokens = () => {
-    setSelectedTokenA(selectedTokenB)
-    setSelectedTokenB(selectedTokenA)
+    setIsSwapped(!isSwapped)
   }
+
+  if (loading) {
+    return <p>Loading...</p>
+  }
+
+  if (error) {
+    return <p>Error: {error.message}</p>
+  }
+
   if (isConnected) {
     return (
       <Box p={4} borderWidth="1px" borderRadius="lg" borderColor="gray.200">
@@ -90,8 +124,14 @@ export default function SwapComponent() {
             />
             <Select
               size="sm"
-              value={selectedTokenA}
-              onChange={(e) => setSelectedTokenA(e.target.value)}
+              value={isSwapped ? selectedTokenB : selectedTokenA}
+              onChange={(e) => {
+                if (isSwapped) {
+                  setSelectedTokenB(e.target.value)
+                } else {
+                  setSelectedTokenA(e.target.value)
+                }
+              }}
               width="200px"
               border="none"
               _focus={{ boxShadow: 'none' }}>
@@ -112,6 +152,9 @@ export default function SwapComponent() {
               </option>
             ))}
           </Select>
+
+          <UniPoolPrice />
+
           <IconButton icon={<FaArrowDown />} aria-label="Swap Tokens" onClick={handleSwapTokens} />
         </Flex>
 
@@ -128,8 +171,14 @@ export default function SwapComponent() {
             />
             <Select
               size="sm"
-              value={selectedTokenB}
-              onChange={(e) => setSelectedTokenB(e.target.value)}
+              value={isSwapped ? selectedTokenA : selectedTokenB}
+              onChange={(e) => {
+                if (isSwapped) {
+                  setSelectedTokenA(e.target.value)
+                } else {
+                  setSelectedTokenB(e.target.value)
+                }
+              }}
               width="200px"
               border="none"
               _focus={{ boxShadow: 'none' }}>
@@ -141,10 +190,11 @@ export default function SwapComponent() {
             </Select>
           </InputGroup>
         </Flex>
-        <Input mb={2} type="text" value={inputUser} onChange={(e) => setInputUser(e.target.value)} placeholder="User" />
+        {flag && <Input mb={2} type="text" value={inputUser} onChange={(e) => setInputUser(e.target.value)} placeholder="User" />}
+
         <SwapButton
           exchange={selectExchange}
-          user={inputUser}
+          user={flag ? inputUser : (address as string)}
           inCoin={selectedTokenA}
           outCoin={selectedTokenB}
           inAmount={debouncedValueA}
