@@ -1,6 +1,6 @@
 import { Box, Select, Input, Button, Text, Flex, IconButton, InputGroup, InputRightElement } from '@chakra-ui/react'
 import { FaArrowDown } from 'react-icons/fa'
-import React, { useContext, useEffect, useState } from 'react'
+import React, { useContext, useEffect, useMemo, useState } from 'react'
 import { useDebounce } from 'usehooks-ts'
 import { ETH, USDC, VAULT_MANAGEMENT, WETH9, UniSwap } from 'utils/config'
 import { useAccount, useContractWrite } from 'wagmi'
@@ -9,7 +9,7 @@ import { parseEther } from 'viem'
 
 import { useAllTokens } from '../hooks/useAllTokens'
 import UniPoolPrice from './uniPoolPrice'
-import { PriceContext } from './PriceContext'
+import { PriceContext } from '../components/PriceContext'
 
 interface SwapProps {
   exchange: string
@@ -63,16 +63,26 @@ export default function SwapComponent(props: { flag: any }) {
   const priceContext = useContext(PriceContext)
   console.log('priceContext', priceContext?.priceState)
 
-  const tokenOptions =
-    tokens?.map((token) => ({
-      value: token.id,
-      label: token.symbol,
-    })) || []
+  const tokenOptions = useMemo(
+    () =>
+      tokens?.map((token) => ({
+        value: token.id,
+        label: token.symbol,
+      })) || [],
+    [tokens]
+  )
 
-  const [selectedTokenA, setSelectedTokenA] = useState(tokenOptions[0]?.value || '')
-  const [selectedTokenB, setSelectedTokenB] = useState(tokenOptions[1]?.value || '')
+  console.log(tokenOptions)
+  const [selectedTokenA, setSelectedTokenA] = useState(tokenOptions[0]?.value)
+  const [selectedTokenB, setSelectedTokenB] = useState(tokenOptions[1]?.value)
   const pool = '0x334c18D09deebe577e1B5811F6EA94247Fb75015'
 
+  useEffect(() => {
+    if (tokenOptions.length > 0) {
+      setSelectedTokenA(tokenOptions[0]?.value)
+      setSelectedTokenB(tokenOptions[1]?.value)
+    }
+  }, [tokenOptions])
   const exchangeOptions = [
     { label: 'uniswap', value: UniSwap },
     { label: 'curve', value: 'curve' },
@@ -84,20 +94,42 @@ export default function SwapComponent(props: { flag: any }) {
   const { isConnected } = useAccount()
   const { address } = useAccount()
 
-  useEffect(() => {
-    // 当 inputValueA 发生变化时，更新 inputValueB
-    const calculatedValueB = parseFloat(inputValueA) * Number(priceContext?.priceState)
-    setInputValueB(isNaN(calculatedValueB) ? '' : calculatedValueB.toString())
-  }, [inputValueA, priceContext])
+  // useEffect(() => {
+  //   // 当 inputValueA 发生变化时，更新 inputValueB
+  //   const calculatedValueB = parseFloat(inputValueA) * Number(priceContext?.priceState)
+  //   setInputValueB(isNaN(calculatedValueB) ? '' : calculatedValueB.toString())
+  // }, [inputValueA, priceContext])
 
-  useEffect(() => {
-    // 当 inputValueB 发生变化时，更新 inputValueA
-    const calculatedValueA = parseFloat(inputValueB) / Number(priceContext?.priceState)
-    setInputValueA(isNaN(calculatedValueA) ? '' : calculatedValueA.toString())
-  }, [inputValueB, priceContext])
+  // useEffect(() => {
+  //   // 当 inputValueB 发生变化时，更新 inputValueA
+  //   const calculatedValueA = parseFloat(inputValueB) / Number(priceContext?.priceState)
+  //   setInputValueA(isNaN(calculatedValueA) ? '' : calculatedValueA.toString())
+  // }, [inputValueB, priceContext])
 
   const handleSwapTokens = () => {
     setIsSwapped(!isSwapped)
+  }
+
+  const handleInputValueAChange = (value: string) => {
+    setInputValueA(value)
+    if (!isSwapped) {
+      const calculatedValueB = parseFloat(value) * Number(priceContext?.priceState)
+      setInputValueB(isNaN(calculatedValueB) ? '' : calculatedValueB.toString())
+    } else {
+      const calculatedValueB = parseFloat(value) / Number(priceContext?.priceState)
+      setInputValueB(isNaN(calculatedValueB) ? '' : calculatedValueB.toString())
+    }
+  }
+
+  const handleInputValueBChange = (value: string) => {
+    setInputValueB(value)
+    if (!isSwapped) {
+      const calculatedValueA = parseFloat(value) / Number(priceContext?.priceState)
+      setInputValueA(isNaN(calculatedValueA) ? '' : calculatedValueA.toString())
+    } else {
+      const calculatedValueA = parseFloat(value) * Number(priceContext?.priceState)
+      setInputValueA(isNaN(calculatedValueA) ? '' : calculatedValueA.toString())
+    }
   }
 
   if (loading) {
@@ -116,7 +148,7 @@ export default function SwapComponent(props: { flag: any }) {
             <Input
               size="sm"
               value={inputValueA}
-              onChange={(e) => setInputValueA(e.target.value)}
+              onChange={(e) => handleInputValueAChange(e.target.value)}
               pr="4.5rem"
               border="none"
               _focus={{ boxShadow: 'none' }}
@@ -163,7 +195,7 @@ export default function SwapComponent(props: { flag: any }) {
             <Input
               size="sm"
               value={inputValueB}
-              onChange={(e) => setInputValueB(e.target.value)}
+              onChange={(e) => handleInputValueBChange(e.target.value)}
               pr="4.5rem"
               border="none"
               _focus={{ boxShadow: 'none' }}

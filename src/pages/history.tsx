@@ -18,7 +18,7 @@ import {
 } from '@chakra-ui/react'
 import { useRecentTransactions, QueryType, Deposit, Withdraw, DepositFor, SwapToken } from 'hooks/useHistory'
 
-export function History() {
+export default function History() {
   const [selectedTab, setSelectedTab] = useState<number>(0)
   const [queryType, setQueryType] = useState<QueryType>('Deposit') // 默认查询类型
   const [hasData, setHasData] = useState(false) // 用于跟踪是否有数据

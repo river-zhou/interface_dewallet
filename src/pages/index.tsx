@@ -26,11 +26,11 @@ import DepositComponent from './deposit'
 import StrategyComponent from './strategy'
 import SwapComponent from './swap'
 import Confirm from './extra'
-import { History } from './history'
+import History from './history'
 
 import { useQuery, gql } from '@apollo/client'
 import { QueryType } from 'hooks/useHistory'
-import { PriceProvider } from './PriceContext'
+import { PriceProvider } from '../components/PriceContext'
 
 export default function Home() {
   const [activeLink, setActiveLink] = useState('deposit')

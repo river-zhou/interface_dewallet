@@ -35,9 +35,13 @@ function useQuoter(params: Partial<QuoteExactInputSingleParams> = {}) {
       const quoterContract = new ethers.Contract(QUOTER_CONTRACT_ADDRESS, QUOTER_ABI, new ethers.providers.JsonRpcProvider(BLOCK_CHAIN_RPC))
 
       try {
-        const result: QuoteExactInputSingleResult = await quoterContract.methods
-          .quoteExactInputSingle(params.tokenIn, params.tokenOut, params.fee, params.amountIn, params.sqrtPriceLimitX96)
-          .call()
+        const result: QuoteExactInputSingleResult = await quoterContract.callStatic.quoteExactInputSingle(
+          params.tokenIn,
+          params.tokenOut,
+          params.fee,
+          params.amountIn,
+          params.sqrtPriceLimitX96
+        )
 
         setQuotedAmount(result.amountOut)
       } catch (error) {

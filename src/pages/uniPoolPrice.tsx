@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useContext } from 'react'
 import { Text } from '@chakra-ui/react'
 import Web3 from 'web3'
-import { PriceContext } from './PriceContext'
+import { PriceContext } from '../components/PriceContext'
 
-// 导入你的 ABI 和区块链 RPC 配置
 import { UNI_POOL_ABI_V3 } from 'abis'
 import { BLOCK_CHAIN_RPC } from 'utils/config'
+import { ethers } from 'ethers'
 
 const CONTRACT_ADDRESS = '0x11b815efB8f581194ae79006d24E0d814B7697F6'
 
@@ -19,13 +19,13 @@ export default function UniPoolPrice() {
   useEffect(() => {
     if (priceContext) {
       const { priceState, setPriceState } = priceContext
-      const web3 = new Web3(BLOCK_CHAIN_RPC)
-      const contract = new web3.eth.Contract(UNI_POOL_ABI_V3, CONTRACT_ADDRESS)
+      const contract = new ethers.Contract(CONTRACT_ADDRESS, UNI_POOL_ABI_V3, new ethers.providers.JsonRpcProvider(BLOCK_CHAIN_RPC))
 
-      const getContractState = async () => {
+      const fetchData = async () => {
         try {
-          const result: Slot0Result = await contract.methods.slot0().call()
+          const result: Slot0Result = await contract.slot0()
           const newPriceBigInt = BigInt(result['sqrtPriceX96'])
+          console.log(newPriceBigInt)
           const newPriceScaled = ((newPriceBigInt * newPriceBigInt * BigInt(1e18)) >> (96n * 2n)) / BigInt(10 ** 6)
           if (String(newPriceScaled) !== priceState) {
             setPriceState(`${newPriceScaled}`)
@@ -35,15 +35,9 @@ export default function UniPoolPrice() {
         }
       }
 
-      getContractState()
-
-      const interval = setInterval(getContractState, 10000)
-
-      return () => {
-        clearInterval(interval)
-      }
+      fetchData()
     }
-  }, [])
+  }, [priceContext])
 
   return <Text> 1ETH:{priceContext ? priceContext.priceState : ''}USDC</Text>
 }
