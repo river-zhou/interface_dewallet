@@ -150,7 +150,18 @@ export default function StrategyComponent(props: { flag: any }) {
             </option>
           ))}
         </Select>
-        <Input mb={2} type="text" value={inputValue} onChange={(e) => setInputValue(e.target.value)} placeholder="Amount" />
+        <Input
+          mb={2}
+          type="text"
+          value={inputValue}
+          onChange={(e) => {
+            const input = e.target.value
+            if (/^\d*\.?\d*$/.test(input)) {
+              setInputValue(input)
+            }
+          }}
+          placeholder="Amount"
+        />
         {flag && <Input mb={2} type="text" value={inputUser} onChange={(e) => setInputUser(e.target.value)} placeholder="User" />}
 
         <Flex justifyContent="space-between" alignItems="center">

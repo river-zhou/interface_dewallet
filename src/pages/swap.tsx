@@ -94,41 +94,33 @@ export default function SwapComponent(props: { flag: any }) {
   const { isConnected } = useAccount()
   const { address } = useAccount()
 
-  // useEffect(() => {
-  //   // 当 inputValueA 发生变化时，更新 inputValueB
-  //   const calculatedValueB = parseFloat(inputValueA) * Number(priceContext?.priceState)
-  //   setInputValueB(isNaN(calculatedValueB) ? '' : calculatedValueB.toString())
-  // }, [inputValueA, priceContext])
-
-  // useEffect(() => {
-  //   // 当 inputValueB 发生变化时，更新 inputValueA
-  //   const calculatedValueA = parseFloat(inputValueB) / Number(priceContext?.priceState)
-  //   setInputValueA(isNaN(calculatedValueA) ? '' : calculatedValueA.toString())
-  // }, [inputValueB, priceContext])
-
   const handleSwapTokens = () => {
     setIsSwapped(!isSwapped)
   }
 
   const handleInputValueAChange = (value: string) => {
-    setInputValueA(value)
-    if (!isSwapped) {
-      const calculatedValueB = parseFloat(value) * Number(priceContext?.priceState)
-      setInputValueB(isNaN(calculatedValueB) ? '' : calculatedValueB.toString())
-    } else {
-      const calculatedValueB = parseFloat(value) / Number(priceContext?.priceState)
-      setInputValueB(isNaN(calculatedValueB) ? '' : calculatedValueB.toString())
+    if (/^\d*\.?\d*$/.test(value)) {
+      setInputValueA(value)
+      if (!isSwapped) {
+        const calculatedValueB = parseFloat(value) * Number(priceContext?.priceState)
+        setInputValueB(isNaN(calculatedValueB) ? '' : calculatedValueB.toString())
+      } else {
+        const calculatedValueB = parseFloat(value) / Number(priceContext?.priceState)
+        setInputValueB(isNaN(calculatedValueB) ? '' : calculatedValueB.toString())
+      }
     }
   }
 
   const handleInputValueBChange = (value: string) => {
-    setInputValueB(value)
-    if (!isSwapped) {
-      const calculatedValueA = parseFloat(value) / Number(priceContext?.priceState)
-      setInputValueA(isNaN(calculatedValueA) ? '' : calculatedValueA.toString())
-    } else {
-      const calculatedValueA = parseFloat(value) * Number(priceContext?.priceState)
-      setInputValueA(isNaN(calculatedValueA) ? '' : calculatedValueA.toString())
+    if (/^\d*\.?\d*$/.test(value)) {
+      setInputValueB(value)
+      if (!isSwapped) {
+        const calculatedValueA = parseFloat(value) / Number(priceContext?.priceState)
+        setInputValueA(isNaN(calculatedValueA) ? '' : calculatedValueA.toString())
+      } else {
+        const calculatedValueA = parseFloat(value) * Number(priceContext?.priceState)
+        setInputValueA(isNaN(calculatedValueA) ? '' : calculatedValueA.toString())
+      }
     }
   }
 

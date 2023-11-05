@@ -124,8 +124,19 @@ export default function DepositComponent() {
             </option>
           ))}
         </Select>
-        <Input mb={2} type="text" value={inputValue} onChange={(e) => setInputValue(e.target.value)} placeholder="Amount" />{' '}
-        {/* 使用 Chakra UI 的样式 */}
+        <Input
+          mb={2}
+          type="text"
+          value={inputValue}
+          onChange={(e) => {
+            const input = e.target.value
+            if (/^\d*\.?\d*$/.test(input)) {
+              setInputValue(input)
+            }
+          }}
+          placeholder="Amount"
+        />
+
         <Flex justifyContent="space-between" alignItems="center">
           <Text color="gray">{balanceInfo}</Text>
           {depositButton}
