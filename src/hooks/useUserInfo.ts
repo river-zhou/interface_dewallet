@@ -36,7 +36,6 @@ const GET_ACCOUNT = gql`
     }
   }
 `
-console.log(GET_ACCOUNT.definitions)
 export function useAccountDetails(accountId: string) {
   const { loading, error, data } = useQuery<QueryResult>(GET_ACCOUNT, {
     variables: { accountId },

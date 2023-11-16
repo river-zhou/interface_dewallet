@@ -2,11 +2,10 @@ import { Box, Select, Input, Button, Text, Flex, IconButton, InputGroup, InputRi
 import { FaArrowDown } from 'react-icons/fa'
 import React, { useContext, useEffect, useMemo, useState } from 'react'
 import { useDebounce } from 'usehooks-ts'
-import { ETH, USDC, VAULT_MANAGEMENT, WETH9, UniSwap } from 'utils/config'
+import { CONTRACTS_ALL } from 'utils/config'
 import { useAccount, useContractWrite } from 'wagmi'
 import { VAULT_MANAGEMENT_ABI } from 'abis/'
 import { parseEther } from 'viem'
-
 import { useAllTokens } from '../hooks/useAllTokens'
 import UniPoolPrice from './uniPoolPrice'
 import { PriceContext } from '../components/PriceContext'
@@ -24,7 +23,7 @@ function SwapButton(props: SwapProps) {
   const { exchange, user, inCoin, outCoin, inAmount, outAmount } = props
   const pool = '0x334c18D09deebe577e1B5811F6EA94247Fb75015'
   const { data, isLoading, isSuccess, write } = useContractWrite({
-    address: VAULT_MANAGEMENT,
+    address: CONTRACTS_ALL.VAULT_MANAGEMENT as `0x{string}`,
     abi: VAULT_MANAGEMENT_ABI,
     functionName: 'swapTokenFor',
     args: [
@@ -61,7 +60,6 @@ export default function SwapComponent(props: { flag: any }) {
   const [inputUser, setInputUser] = useState('')
   const { loading, error, tokens } = useAllTokens()
   const priceContext = useContext(PriceContext)
-  console.log('priceContext', priceContext?.priceState)
 
   const tokenOptions = useMemo(
     () =>
@@ -72,7 +70,6 @@ export default function SwapComponent(props: { flag: any }) {
     [tokens]
   )
 
-  console.log(tokenOptions)
   const [selectedTokenA, setSelectedTokenA] = useState(tokenOptions[0]?.value)
   const [selectedTokenB, setSelectedTokenB] = useState(tokenOptions[1]?.value)
   const pool = '0x334c18D09deebe577e1B5811F6EA94247Fb75015'
@@ -84,11 +81,11 @@ export default function SwapComponent(props: { flag: any }) {
     }
   }, [tokenOptions])
   const exchangeOptions = [
-    { label: 'uniswap', value: UniSwap },
+    { label: 'uniswap', value: CONTRACTS_ALL.EXCHANGES.UNISWAP },
     { label: 'curve', value: 'curve' },
   ]
 
-  const [selectExchange, setSelectExchange] = useState(UniSwap)
+  const [selectExchange, setSelectExchange] = useState(CONTRACTS_ALL.EXCHANGES.UNISWAP)
   const [isSwapped, setIsSwapped] = useState(false)
 
   const { isConnected } = useAccount()

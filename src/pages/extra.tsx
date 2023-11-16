@@ -1,7 +1,7 @@
 import { Button } from '@chakra-ui/react'
 import { VAULT_MANAGEMENT_ABI } from 'abis/'
 import { useState } from 'react'
-import { VAULT_MANAGEMENT } from 'utils/config'
+import { CONTRACTS_ALL } from 'utils/config'
 import { useAccount, useContractWrite } from 'wagmi'
 
 interface ConfirmProps {
@@ -27,7 +27,7 @@ export default function Confirm(props: ConfirmProps) {
   }
 
   const { data, isLoading, isSuccess, write } = useContractWrite({
-    address: VAULT_MANAGEMENT,
+    address: CONTRACTS_ALL.VAULT_MANAGEMENT as `0x${string}`,
     abi: VAULT_MANAGEMENT_ABI,
     functionName: functionName,
     args: args,

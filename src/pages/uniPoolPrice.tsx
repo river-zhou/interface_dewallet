@@ -25,7 +25,6 @@ export default function UniPoolPrice() {
         try {
           const result: Slot0Result = await contract.slot0()
           const newPriceBigInt = BigInt(result['sqrtPriceX96'])
-          console.log(newPriceBigInt)
           const newPriceScaled = ((newPriceBigInt * newPriceBigInt * BigInt(1e18)) >> (96n * 2n)) / BigInt(10 ** 6)
           if (String(newPriceScaled) !== priceState) {
             setPriceState(`${newPriceScaled}`)

@@ -1,8 +1,8 @@
-import { ETH } from 'utils/config'
+import { CONTRACTS_ALL } from 'utils/config'
 import { useAccount, useBalance, erc20ABI, useContractRead, useContractWrite } from 'wagmi'
 
 function isERC20(token: string) {
-  if (token !== ETH) {
+  if (token !== CONTRACTS_ALL.TOKENS.ETH) {
     return true
   }
 }

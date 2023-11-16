@@ -19,9 +19,7 @@ const wagmiConfig = createConfig({
   connectors: w3mConnectors({ projectId, chains }),
   publicClient,
 })
-
 const ethereumClient = new EthereumClient(wagmiConfig, chains)
-
 export function Web3Provider(props: Props) {
   const { colorMode } = useColorMode()
   const [ready, setReady] = useState(false)

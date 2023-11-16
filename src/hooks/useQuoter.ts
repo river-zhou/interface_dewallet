@@ -1,7 +1,7 @@
 import { QUOTER_ABI } from 'abis'
 import { ethers } from 'ethers'
 import { useEffect, useState } from 'react'
-import { BLOCK_CHAIN_RPC, QUOTER_CONTRACT_ADDRESS } from 'utils/config'
+import { BLOCK_CHAIN_RPC, CONTRACTS_ALL } from 'utils/config'
 
 interface QuoteExactInputSingleParams {
   tokenIn: string
@@ -32,7 +32,11 @@ function useQuoter(params: Partial<QuoteExactInputSingleParams> = {}) {
 
   useEffect(() => {
     async function fetchQuotedAmount() {
-      const quoterContract = new ethers.Contract(QUOTER_CONTRACT_ADDRESS, QUOTER_ABI, new ethers.providers.JsonRpcProvider(BLOCK_CHAIN_RPC))
+      const quoterContract = new ethers.Contract(
+        CONTRACTS_ALL.QUOTER_CONTRACT_ADDRESS,
+        QUOTER_ABI,
+        new ethers.providers.JsonRpcProvider(BLOCK_CHAIN_RPC)
+      )
 
       try {
         const result: QuoteExactInputSingleResult = await quoterContract.callStatic.quoteExactInputSingle(

@@ -1,7 +1,7 @@
-import React, { useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { Box, Select, Input, Button, Text, Flex } from '@chakra-ui/react' // 导入 Chakra UI 组件
-import { useAccount, useBalance, useContractWrite } from 'wagmi'
-import { ETH, WETH9, VAULT_MANAGEMENT } from 'utils/config'
+import { erc20ABI, useAccount, useBalance, useContractWrite } from 'wagmi'
+import { BLOCK_CHAIN_RPC, CONTRACTS_ALL } from 'utils/config'
 import { VAULT_MANAGEMENT_ABI } from 'abis/index'
 import { useApprove, useGetAllowance } from 'hooks/useERC20'
 import { useCurrentBalance } from 'hooks/useCurrentBalance'
@@ -9,10 +9,11 @@ import { useDebounce } from 'usehooks-ts'
 import { parseEther } from 'viem'
 import { BigNumber } from 'bignumber.js'
 import { useAllTokens } from '../hooks/useAllTokens'
+import { ethers } from 'ethers'
 
 function DepositETH({ debouncedToken, debouncedValue }: { debouncedToken: string; debouncedValue: string }) {
   const { data, isLoading, isSuccess, write } = useContractWrite({
-    address: VAULT_MANAGEMENT,
+    address: CONTRACTS_ALL.VAULT_MANAGEMENT as `0x{string}`,
     abi: VAULT_MANAGEMENT_ABI,
     functionName: 'deposit',
     args: [debouncedToken, parseEther('0')],
@@ -36,12 +37,12 @@ function DepositETH({ debouncedToken, debouncedValue }: { debouncedToken: string
 }
 
 function DepositERC20({ debouncedToken, user, debouncedValue }: { debouncedToken: string; user: string; debouncedValue: string }) {
-  const approveResults = useGetAllowance(debouncedToken, user, VAULT_MANAGEMENT)
+  const approveResults = useGetAllowance(debouncedToken, user, CONTRACTS_ALL.VAULT_MANAGEMENT)
 
-  const approve = useApprove(debouncedToken, VAULT_MANAGEMENT, parseEther(debouncedValue as `${number}`))
+  const approve = useApprove(debouncedToken, CONTRACTS_ALL.VAULT_MANAGEMENT, parseEther(debouncedValue as `${number}`))
 
   const { data, isLoading, isSuccess, write } = useContractWrite({
-    address: VAULT_MANAGEMENT,
+    address: CONTRACTS_ALL.VAULT_MANAGEMENT as `0x{string}`,
     abi: VAULT_MANAGEMENT_ABI,
     functionName: 'deposit',
     args: [debouncedToken, debouncedValue ? parseEther(debouncedValue as `${number}`) : parseEther('0')],
@@ -73,32 +74,47 @@ function DepositERC20({ debouncedToken, user, debouncedValue }: { debouncedToken
 }
 
 export default function DepositComponent() {
-  const [selectedToken, setSelectedToken] = useState('0x42a71137C09AE83D8d05974960fd607d40033499')
+  const [selectedToken, setSelectedToken] = useState(CONTRACTS_ALL.TOKENS.ETH[0])
   const debouncedToken = useDebounce(selectedToken, 500)
+  const [selectedTokenBalance, setSelectTokenBalance] = useState('')
   const [inputValue, setInputValue] = useState('')
   const debouncedValue = useDebounce(inputValue, 500)
   const { loading, error, tokens } = useAllTokens()
-  const tokenOptions = tokens?.map((token) => ({
-    value: token.id,
-    label: token.symbol,
-  }))
   const { isConnected } = useAccount()
   const { address } = useAccount()
-  const balance = useCurrentBalance(address as `0x${string}`, debouncedToken === ETH ? '' : debouncedToken)
-  let balanceInfo = null
-  let symbol = null
-  if (selectedToken === ETH) {
-    const ethFormatted = balance.data?.formatted
-    const ethValue = ethFormatted !== undefined ? new BigNumber(ethFormatted) : new BigNumber(0)
-    balanceInfo = <>余额: {ethValue.toFixed(4)} ETH</>
-    symbol = 'ETH'
-  } else {
-    const ercFormatted = balance.data?.formatted
-    const ercSymbol = balance.data?.symbol
-    const ercValue = ercFormatted !== undefined ? new BigNumber(ercFormatted) : new BigNumber(0)
-    balanceInfo = <>余额: {`${ercValue.toFixed(4)} ${ercSymbol}`}</>
-    symbol = ercSymbol
-  }
+  const tokenOptions = tokens.map((token) => {
+    return {
+      value: token.id,
+      label: token.symbol,
+    }
+  })
+  const fixedOptions = [
+    {
+      value: CONTRACTS_ALL.TOKENS.ETH,
+      label: 'ETH',
+    },
+  ]
+  const allOptions = [...fixedOptions, ...tokenOptions]
+
+  useEffect(() => {
+    const fetchBalance = async () => {
+      if (CONTRACTS_ALL.TOKENS.ETH === debouncedToken) {
+        const provider = new ethers.providers.JsonRpcProvider('https://rpc.ankr.com/eth_goerli')
+        const balanceETH = await provider.getBalance(address as string)
+        const formattedBalance = parseFloat(ethers.utils.formatUnits(balanceETH, 18)).toFixed(4)
+        setSelectTokenBalance(formattedBalance)
+      } else {
+        const ERC20 = new ethers.Contract(debouncedToken, erc20ABI, new ethers.providers.JsonRpcProvider('https://rpc.ankr.com/eth_goerli'))
+        const balanceERC = await ERC20.balanceOf(address)
+        const decimals = await ERC20.decimals()
+        // const ercSymbol = await ERC20.symbol()
+        const ercFormatted = balanceERC.data?.formatted
+        const ercValue = ercFormatted !== undefined ? parseFloat(ethers.utils.formatUnits(ercFormatted, decimals)).toFixed(4) : '0'
+        setSelectTokenBalance(ercValue)
+      }
+    }
+    fetchBalance()
+  }, [address, debouncedToken])
   if (loading) {
     return <p>Loading...</p>
   }
@@ -108,17 +124,16 @@ export default function DepositComponent() {
   }
 
   if (isConnected) {
-    const depositButton =
-      debouncedToken === ETH ? (
-        <DepositETH debouncedToken={debouncedToken} debouncedValue={debouncedValue} />
-      ) : (
-        <DepositERC20 debouncedToken={debouncedToken} user={address as `0x${string}`} debouncedValue={debouncedValue} />
-      )
+    const depositButton = CONTRACTS_ALL.TOKENS.ETH.includes(debouncedToken) ? (
+      <DepositETH debouncedToken={debouncedToken} debouncedValue={debouncedValue} />
+    ) : (
+      <DepositERC20 debouncedToken={debouncedToken} user={address as `0x${string}`} debouncedValue={debouncedValue} />
+    )
 
     return (
       <Box p={4} borderWidth="1px" borderRadius="lg" borderColor="gray.200">
         <Select mb={2} value={selectedToken} onChange={(e) => setSelectedToken(e.target.value)}>
-          {tokenOptions?.map((option) => (
+          {allOptions?.map((option) => (
             <option key={option.value} value={option.value}>
               {option.label}
             </option>
@@ -138,7 +153,7 @@ export default function DepositComponent() {
         />
 
         <Flex justifyContent="space-between" alignItems="center">
-          <Text color="gray">{balanceInfo}</Text>
+          <Text color="gray">Balance：{selectedTokenBalance}</Text>
           {depositButton}
         </Flex>
       </Box>

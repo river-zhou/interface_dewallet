@@ -3,8 +3,6 @@ import {
   Flex,
   Select,
   Input,
-  FormControl,
-  Text,
   Button,
   Icon,
   Modal,
@@ -21,7 +19,7 @@ import {
   Spacer,
 } from '@chakra-ui/react'
 import { FiChevronRight } from 'react-icons/fi'
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import DepositComponent from './deposit'
 import StrategyComponent from './strategy'
 import SwapComponent from './swap'
@@ -38,6 +36,7 @@ export default function Home() {
   const [userOption, setUserOption] = useState('setManager')
   const [inputAddress, setInputAddress] = useState('')
   const [isManager, setIsManager] = useState(false)
+  const [content, setContent] = useState<React.ReactNode | null>(null)
 
   const userOptions = [
     { label: 'setManager', value: 'setManager' },
@@ -46,18 +45,25 @@ export default function Home() {
     { label: 'midStrategy', value: 'midStrategy' },
   ]
 
-  const renderContent = (flag: boolean) => {
-    switch (activeLink) {
-      case 'deposit':
-        return flag ? <StrategyComponent flag={flag} /> : <DepositComponent />
-      case 'strategy':
-        return <StrategyComponent flag={flag} />
-      case 'swap':
-        return <SwapComponent flag={flag} />
-      default:
-        return null
+  useEffect(() => {
+    const updateContent = (flag: boolean) => {
+      switch (activeLink) {
+        case 'deposit':
+          setContent(flag ? <StrategyComponent flag={flag} /> : <DepositComponent />)
+          break
+        case 'strategy':
+          setContent(<StrategyComponent flag={flag} />)
+          break
+        case 'swap':
+          setContent(<SwapComponent flag={flag} />)
+          break
+        default:
+          setContent(null)
+      }
     }
-  }
+
+    updateContent(isManager)
+  }, [isManager, activeLink])
 
   const openModal = () => {
     setIsModalOpen(true)
@@ -157,7 +163,7 @@ export default function Home() {
                 )}
               </Flex>
             </Flex>
-            <PriceProvider>{renderContent(isManager)}</PriceProvider>
+            <PriceProvider>{content}</PriceProvider>
           </Flex>
         </Box>
 
